@@ -54,74 +54,74 @@ def call(Map configMap){
                     }
                 }
             }
-            // stage ('SonarQube Analysis'){
-            //     steps {
-            //         script {
-            //             def scannerHome = tool name: 'sonar-8' // agent configuration
-            //             withSonarQubeEnv('sonar-server') { // analysing and uploading to server
-            //                 sh "${scannerHome}/bin/sonar-scanner"
-            //             }
-            //         }
-            //     }
-            // }
-            // stage("Quality Gate") {
-            //     steps {
-            //         script {
-            //             timeout(time: 1, unit: 'HOURS') {
-            //                 def qg = waitForQualityGate()
-            //                 if (qg.status != 'OK') {
-            //                     utils.updateCommitStatus('failure', "SonarQube quality gate failed: ${qg.status}", 'sonar-scan')
-            //                     error "Quality gate failed: ${qg.status}"
-            //                 } else {
-            //                     utils.updateCommitStatus('success', 'SonarQube quality gate passed', 'sonar-scan')
-            //                 }
-            //             }
-            //         }
-            //     }
-            // }
-            // stage('Dependabot Alerts Check') {
-            //     steps {
-            //         script {
-            //             withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN_SCAN')]) {
-            //                 def repoUrl = sh(script: 'git remote get-url origin', returnStdout: true).trim()
-            //                 def repoPath = repoUrl.replaceAll(/.*github\.com[\/:]/, '').replaceAll(/\.git$/, '')
+            stage ('SonarQube Analysis'){
+                steps {
+                    script {
+                        def scannerHome = tool name: 'sonar-8' // agent configuration
+                        withSonarQubeEnv('sonar-server') { // analysing and uploading to server
+                            sh "${scannerHome}/bin/sonar-scanner"
+                        }
+                    }
+                }
+            }
+            stage("Quality Gate") {
+                steps {
+                    script {
+                        timeout(time: 1, unit: 'HOURS') {
+                            def qg = waitForQualityGate()
+                            if (qg.status != 'OK') {
+                                utils.updateCommitStatus('failure', "SonarQube quality gate failed: ${qg.status}", 'sonar-scan')
+                                error "Quality gate failed: ${qg.status}"
+                            } else {
+                                utils.updateCommitStatus('success', 'SonarQube quality gate passed', 'sonar-scan')
+                            }
+                        }
+                    }
+                }
+            }
+            stage('Dependabot Alerts Check') {
+                steps {
+                    script {
+                        withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN_SCAN')]) {
+                            def repoUrl = sh(script: 'git remote get-url origin', returnStdout: true).trim()
+                            def repoPath = repoUrl.replaceAll(/.*github\.com[\/:]/, '').replaceAll(/\.git$/, '')
 
-            //                 def alertCount = sh(
-            //                     script: """
-            //                         curl -sf \
-            //                             -H "Authorization: Bearer \$GITHUB_TOKEN_SCAN" \
-            //                             -H "Accept: application/vnd.github+json" \
-            //                             -H "X-GitHub-Api-Version: 2022-11-28" \
-            //                             "https://api.github.com/repos/${repoPath}/dependabot/alerts?state=open&per_page=100" \
-            //                         | jq '[.[] | select(.security_vulnerability.severity == "high" or .security_vulnerability.severity == "critical")] | length'
-            //                     """,
-            //                     returnStdout: true
-            //                 ).trim()
+                            def alertCount = sh(
+                                script: """
+                                    curl -sf \
+                                        -H "Authorization: Bearer \$GITHUB_TOKEN_SCAN" \
+                                        -H "Accept: application/vnd.github+json" \
+                                        -H "X-GitHub-Api-Version: 2022-11-28" \
+                                        "https://api.github.com/repos/${repoPath}/dependabot/alerts?state=open&per_page=100" \
+                                    | jq '[.[] | select(.security_vulnerability.severity == "high" or .security_vulnerability.severity == "critical")] | length'
+                                """,
+                                returnStdout: true
+                            ).trim()
 
-            //                 if (alertCount.toInteger() > 0) {
-            //                     utils.updateCommitStatus('failure', "${alertCount} HIGH/CRITICAL Dependabot alert(s) detected", 'library-scan')
-            //                     error("Build aborted: ${alertCount} HIGH/CRITICAL Dependabot alert(s) detected. Resolve them before proceeding.")
-            //                 }
-            //                 utils.updateCommitStatus('success', 'Dependabot check passed — no HIGH/CRITICAL alerts', 'library-scan')
-            //                 echo "Dependabot check passed — no HIGH or CRITICAL vulnerabilities found."
-            //             }
-            //         }
-            //     }
-            // }
-            // stage('Build Image') {
-            //     steps {
-            //     script{
-            //             withAWS(credentials: 'aws-creds', region: "${region}") {
-            //                 // Commands here have AWS authentication
-            //                 sh """
-            //                     aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${acc_id}.dkr.ecr.us-east-1.amazonaws.com
-            //                     docker build -t ${acc_id}.dkr.ecr.${region}.amazonaws.com/${project}/${component}:${appVersion} .
-            //                     docker push ${acc_id}.dkr.ecr.${region}.amazonaws.com/${project}/${component}:${appVersion}
-            //                 """
-            //             }
-            //         }
-            //     }
-            // }
+                            if (alertCount.toInteger() > 0) {
+                                utils.updateCommitStatus('failure', "${alertCount} HIGH/CRITICAL Dependabot alert(s) detected", 'library-scan')
+                                error("Build aborted: ${alertCount} HIGH/CRITICAL Dependabot alert(s) detected. Resolve them before proceeding.")
+                            }
+                            utils.updateCommitStatus('success', 'Dependabot check passed — no HIGH/CRITICAL alerts', 'library-scan')
+                            echo "Dependabot check passed — no HIGH or CRITICAL vulnerabilities found."
+                        }
+                    }
+                }
+            }
+            stage('Build Image') {
+                steps {
+                script{
+                        withAWS(credentials: 'aws-creds', region: "${region}") {
+                            // Commands here have AWS authentication
+                            sh """
+                                aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${acc_id}.dkr.ecr.us-east-1.amazonaws.com
+                                docker build -t ${acc_id}.dkr.ecr.${region}.amazonaws.com/${project}/${component}:${appVersion} .
+                                docker push ${acc_id}.dkr.ecr.${region}.amazonaws.com/${project}/${component}:${appVersion}
+                            """
+                        }
+                    }
+                }
+            }
             stage('Trivy OS Scan') {
                 steps {
                     script {
