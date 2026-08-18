@@ -121,12 +121,12 @@ def call(Map configMap){
                                     docker build -t ${acc_id}.dkr.ecr.us-east-1.amazonaws.com/${project}/${component}:${appVersion} .
                                 """
                             }
-                            utils.updateCommitStatus("success", "image build success", "build-image")
+                            // utils.updateCommitStatus("success", "image build success", "build-image")
                         }
-                        catch(Exception e){
-                            utils.updateCommitStatus("failure", "image build failed", "build-image")
-                            throw e
-                        } 
+                        // catch(Exception e){
+                        //     utils.updateCommitStatus("failure", "image build failed", "build-image")
+                        //     throw e
+                        // } 
                     }
                 }
             }
