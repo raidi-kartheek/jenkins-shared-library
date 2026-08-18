@@ -110,17 +110,23 @@ def call(Map configMap){
             //         }
             //     }
             // }
-            stage('Build Image') {
+          stage('Docker Build') {
                 steps {
-                script{
-                        withAWS(credentials: 'aws-creds', region: "${region}") {
-                            // Commands here have AWS authentication
-                            sh """
-                                aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${acc_id}.dkr.ecr.us-east-1.amazonaws.com
-                                docker build -t ${acc_id}.dkr.ecr.${region}.amazonaws.com/${project}/${component}:${appVersion} .
-                                docker push ${acc_id}.dkr.ecr.${region}.amazonaws.com/${project}/${component}:${appVersion}
-                            """
+                    script {
+                        // in this block we get aws authentication
+                        try{
+                            withAWS(credentials: 'aws-creds', region: 'us-east-1') {
+                                sh """
+                                    aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${acc_id}.dkr.ecr.us-east-1.amazonaws.com
+                                    docker build -t ${acc_id}.dkr.ecr.us-east-1.amazonaws.com/${project}/${component}:${appVersion} .
+                                """
+                            }
+                            utils.updateCommitStatus("success", "image build success", "build-image")
                         }
+                        catch(Exception e){
+                            utils.updateCommitStatus("failure", "image build failed", "build-image")
+                            throw e
+                        } 
                     }
                 }
             }
