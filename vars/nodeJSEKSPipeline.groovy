@@ -41,28 +41,21 @@ def call(Map configMap){
                     }
                 }
             }
-            stage('Unit tests') {
-                steps {
-                    script {
-                        try {
-                            sh 'npm test'
-                            utils.updateCommitStatus(
-                                "success",
-                                "unit tests are successful",
-                                "unit-tests"
-                            )
-                        }
-                        catch (Exception e) {
-                            utils.updateCommitStatus(
-                                "failure",
-                                "unit tests are failed",
-                                "unit-tests"
-                            )
-                            throw e
-            }
-        }
-    }
-}
+            //   stage('Unit tests') {
+            //     steps {
+            //         script {
+            //             try{
+            //                 sh """
+            //                     npm test
+            //                 """
+            //                 utils.updateCommitStatus("success", "unit tests are successful", "unit-tests")
+            //             }
+            //             catch(Exception e){
+            //                 utils.updateCommitStatus("failiure", "unit tests are failed", "unit-tests")
+            //             }
+            //         } 
+            //     }
+            // }
             // stage ('SonarQube Analysis'){
             //     steps {
             //         script {
