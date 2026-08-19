@@ -103,19 +103,41 @@ def call (Map configMap){
 
                                     REPO="${org}/${component}"
 
-                                    curl -s -L \
+                                    // curl -s -L \
+                                    // -H "Accept: application/vnd.github+json" \
+                                    // -H "Authorization: Bearer ${GH_TOKEN}" \
+                                    // -H "X-GitHub-Api-Version: 2026-03-10" \
+                                    // "https://api.github.com/repos/${REPO}/dependabot/alerts?state=open" \
+                                    // -o alerts.json
+
+                                    // echo "---- Open Dependabot Alerts ----"
+                                    // jq -r '.[] | "\\(.number)\\t\\(.security_vulnerability.severity)\\t\\(.dependency.package.name)\\t\\(.security_advisory.ghsa_id)"' alerts.json
+
+                                    // HIGH_CRITICAL_COUNT=$(jq '[.[] | select(.security_vulnerability.severity == "high" or .security_vulnerability.severity == "critical")] | length' alerts.json)
+
+                                    // echo "High/Critical alert count: ${HIGH_CRITICAL_COUNT}"
+                                    curl -sS -L \
                                     -H "Accept: application/vnd.github+json" \
                                     -H "Authorization: Bearer ${GH_TOKEN}" \
-                                    -H "X-GitHub-Api-Version: 2026-03-10" \
+                                    -H "X-GitHub-Api-Version: 2022-11-28" \
                                     "https://api.github.com/repos/${REPO}/dependabot/alerts?state=open" \
                                     -o alerts.json
 
+                                    echo "---- GitHub API Response ----"
+                                    cat alerts.json
+
+                                    echo "---- JSON Type ----"
+                                    jq -r 'type' alerts.json
+
                                     echo "---- Open Dependabot Alerts ----"
-                                    jq -r '.[] | "\\(.number)\\t\\(.security_vulnerability.severity)\\t\\(.dependency.package.name)\\t\\(.security_advisory.ghsa_id)"' alerts.json
 
-                                    HIGH_CRITICAL_COUNT=$(jq '[.[] | select(.security_vulnerability.severity == "high" or .security_vulnerability.severity == "critical")] | length' alerts.json)
-
-                                    echo "High/Critical alert count: ${HIGH_CRITICAL_COUNT}"
+                                    jq -r '.[] |
+                                    [
+                                        .number,
+                                        .security_vulnerability.severity,
+                                        .dependency.package.name,
+                                        (.security_advisory.ghsa_id // "N/A")
+                                    ] | @tsv' alerts.json
 
                                     if [ "$HIGH_CRITICAL_COUNT" -gt 0 ]; then
                                         echo "❌ Found ${HIGH_CRITICAL_COUNT} High/Critical severity dependency alert(s). Failing build."
