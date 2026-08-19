@@ -92,180 +92,50 @@ def call (Map configMap){
                     }
                 }
             }
-            // stage('Check Dependabot Alerts') {
-            //     steps {
-            //         script{
-            //             try{
-            //                 withCredentials([string(credentialsId: 'github-token', variable: 'GH_TOKEN')]) {
-                            
-            //                    sh '''
-            //                         set -e
-
-            //                         REPO="${org}/${component}"
-
-            //                         curl -sS -L \
-            //                         -H "Accept: application/vnd.github+json" \
-            //                         -H "Authorization: Bearer ${GH_TOKEN}" \
-            //                         -H "X-GitHub-Api-Version: 2022-11-28" \
-            //                         "https://api.github.com/repos/${REPO}/dependabot/alerts?state=open" \
-            //                         -o alerts.json
-
-            //                         echo "---- GitHub API Response ----"
-            //                         cat alerts.json
-
-            //                         echo "---- JSON Type ----"
-            //                         jq -r 'type' alerts.json
-
-            //                         if ! jq -e 'type == "array"' alerts.json >/dev/null; then
-            //                             echo "GitHub API did not return an array."
-            //                             exit 1
-            //                         fi
-
-            //                         echo "---- Open Dependabot Alerts ----"
-
-            //                         jq -r '.[] |
-            //                         [
-            //                             .number,
-            //                             .security_vulnerability.severity,
-            //                             .dependency.package.name,
-            //                             (.security_advisory.ghsa_id // "N/A")
-            //                         ] | @tsv' alerts.json
-
-            //                         HIGH_CRITICAL_COUNT=$(jq '
-            //                             [
-            //                                 .[] |
-            //                                 select(
-            //                                     .security_vulnerability.severity == "high"
-            //                                     or
-            //                                     .security_vulnerability.severity == "critical"
-            //                                 )
-            //                             ] | length
-            //                         ' alerts.json)
-
-            //                         echo "High/Critical alert count: ${HIGH_CRITICAL_COUNT}"
-
-            //                         if [ "$HIGH_CRITICAL_COUNT" -gt 0 ]; then
-            //                             echo "❌ Found ${HIGH_CRITICAL_COUNT} High/Critical severity dependency alert(s). Failing build."
-            //                             exit 1
-            //                         else
-            //                             echo "✅ No High/Critical dependency alerts found."
-            //                         fi
-            //                     '''
-            //                     utils.updateCommitStatus("success", "library scan success", "library-scan")
-                            
-            //                 }
-            //             }
-            //             catch (Exception e){
-            //                     utils.updateCommitStatus("failure", "library scan failed", "library-scan")
-            //                     throw e
-            //             }
-            //         } 
-            //     }
-            // }
             stage('Check Dependabot Alerts') {
-                    steps {
-                        script {
-                            try {
-                                withCredentials([
-                                    string(credentialsId: 'github-token', variable: 'GH_TOKEN')
-                                ]) {
+                steps {
+                    script{
+                        try{
+                            withCredentials([string(credentialsId: 'github-token', variable: 'GH_TOKEN')]) {
+                            
+                                sh '''
+                                    set -e
 
-                                    sh '''
-                                        set -e
+                                    REPO="${org}/${component}"
 
-                                        REPO="${org}/${component}"
+                                    curl -s -L \
+                                    -H "Accept: application/vnd.github+json" \
+                                    -H "Authorization: Bearer ${GH_TOKEN}" \
+                                    -H "X-GitHub-Api-Version: 2026-03-10" \
+                                    "https://api.github.com/repos/${REPO}/dependabot/alerts?state=open" \
+                                    -o alerts.json
 
-                                        echo "======================================"
-                                        echo "Checking Dependabot Alerts"
-                                        echo "Repository: ${REPO}"
-                                        echo "======================================"
+                                    echo "---- Open Dependabot Alerts ----"
+                                    jq -r '.[] | "\\(.number)\\t\\(.security_vulnerability.severity)\\t\\(.dependency.package.name)\\t\\(.security_advisory.ghsa_id)"' alerts.json
 
-                                        curl -sS -L \
-                                        -H "Accept: application/vnd.github+json" \
-                                        -H "Authorization: Bearer ${GH_TOKEN}" \
-                                        -H "X-GitHub-Api-Version: 2022-11-28" \
-                                        -w "\\nHTTP_STATUS:%{http_code}\\n" \
-                                        "https://api.github.com/repos/${REPO}/dependabot/alerts?state=open" \
-                                        -o alerts.json
+                                    HIGH_CRITICAL_COUNT=$(jq '[.[] | select(.security_vulnerability.severity == "high" or .security_vulnerability.severity == "critical")] | length' alerts.json)
 
-                                        echo "---- GitHub API Response ----"
-                                        cat alerts.json
+                                    echo "High/Critical alert count: ${HIGH_CRITICAL_COUNT}"
 
-                                        echo "---- JSON Type ----"
-                                        jq -r 'type' alerts.json
-
-                                        # Make sure GitHub returned an array
-                                        if ! jq -e 'type == "array"' alerts.json >/dev/null; then
-                                            echo "❌ GitHub API did not return an array."
-                                            echo "Possible causes:"
-                                            echo "1. Invalid GitHub token"
-                                            echo "2. Token does not have Dependabot alerts permission"
-                                            echo "3. Repository does not exist"
-                                            echo "4. Dependabot alerts are not accessible"
-                                            exit 1
-                                        fi
-
-                                        echo ""
-                                        echo "---- Open Dependabot Alerts ----"
-
-                                        jq -r '
-                                            .[] |
-                                            [
-                                                .number,
-                                                .security_vulnerability.severity,
-                                                .dependency.package.name,
-                                                (.security_advisory.ghsa_id // "N/A")
-                                            ] | @tsv
-                                        ' alerts.json
-
-                                        HIGH_CRITICAL_COUNT=$(jq '
-                                            [
-                                                .[] |
-                                                select(
-                                                    .security_vulnerability.severity == "high"
-                                                    or
-                                                    .security_vulnerability.severity == "critical"
-                                                )
-                                            ] | length
-                                        ' alerts.json)
-
-                                        echo ""
-                                        echo "High/Critical alert count: ${HIGH_CRITICAL_COUNT}"
-
-                                        if [ "${HIGH_CRITICAL_COUNT}" -gt 0 ]; then
-
-                                            echo "❌ Found ${HIGH_CRITICAL_COUNT} High/Critical dependency alert(s)."
-                                            echo "❌ Failing build."
-
-                                            exit 1
-
-                                        else
-
-                                            echo "✅ No High/Critical dependency alerts found."
-
-                                        fi
-                                    '''
-
-                                    utils.updateCommitStatus(
-                                        "success",
-                                        "library scan success",
-                                        "library-scan"
-                                    )
-                                }
-
-                            } catch (Exception e) {
-
-                                utils.updateCommitStatus(
-                                    "failure",
-                                    "library scan failed",
-                                    "library-scan"
-                                )
-
-                                throw e
+                                    if [ "$HIGH_CRITICAL_COUNT" -gt 0 ]; then
+                                        echo "❌ Found ${HIGH_CRITICAL_COUNT} High/Critical severity dependency alert(s). Failing build."
+                                        
+                                        exit 1
+                                    else
+                                        echo "✅ No High/Critical dependency alerts found."  
+                                    fi
+                                '''
+                                utils.updateCommitStatus("success", "library scan success", "library-scan")
+                            
                             }
                         }
-                    }
+                        catch (Exception e){
+                                utils.updateCommitStatus("failure", "library scan failed", "library-scan")
+                                throw e
+                        }
+                    } 
                 }
+            }
             stage('Docker Build') {
                 steps {
                     script {
