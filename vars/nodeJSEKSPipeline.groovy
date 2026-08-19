@@ -159,15 +159,7 @@ def call (Map configMap){
             stage('Trivy Scan') {
                 steps {
                     script {
-
-                          sh '''
-                                echo "===== Trivy Check ====="
-                                hostname
-                                whoami
-                                echo "PATH=$PATH"
-                                ls -l /usr/local/bin/trivy
-                                /usr/local/bin/trivy --version
-                            '''
+                        
                         def dockerfileScan = sh(
                             script: """
                                 trivy config --exit-code 1 --severity HIGH,CRITICAL --format table ./Dockerfile
