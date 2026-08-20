@@ -12,6 +12,7 @@
 //                 genericVariables: [
 //                     [key: 'deploy_to', value: '$.deploy_to'],
 //                     [key: 'VERSION',   value: '$.VERSION'],
+
 //                     [key: 'JIRA_KEY',  value: '$.JIRA_KEY'],
 //                     [key: 'CR_NUMBER', value: '$.CR_NUMBER']
 //                 ],
