@@ -162,7 +162,7 @@ def call (Map configMap){
                         
                         def dockerfileScan = sh(
                             script: """
-                                trivy config --exit-code 1 --severity HIGH,CRITICAL --format table ./dockerfile
+                                trivy config --exit-code 1 --severity HIGH,CRITICAL --format table ./Dockerfile
                             """,
                             returnStatus: true
                         )
